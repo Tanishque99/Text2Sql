@@ -22,6 +22,24 @@ class QueryRequest(BaseModel):
         }
 
 
+class PromptRequest(BaseModel):
+    """Request model for generating SQL from a pre-built prompt."""
+    prompt: str = Field(..., description="Pre-built prompt with schema and examples", min_length=1)
+    max_new_tokens: int = Field(128, description="Maximum tokens to generate", ge=1, le=512)
+    temperature: float = Field(0.1, description="Sampling temperature", ge=0.0, le=2.0)
+    do_sample: bool = Field(False, description="Whether to use sampling")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "prompt": "# Database Schema:\n...\n# Question: Show all singers\nSQL:",
+                "max_new_tokens": 128,
+                "temperature": 0.1,
+                "do_sample": False
+            }
+        }
+
+
 class RetrievedContext(BaseModel):
     """Model for retrieved context entry."""
     type: str = Field(..., description="Entry type: 'schema' or 'example'")

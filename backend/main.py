@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
 
-from models.schemas import QueryRequest, QueryResponse, HealthResponse, ErrorResponse
+from models.schemas import QueryRequest, QueryResponse, HealthResponse, ErrorResponse, PromptRequest
 from services.retriever import VectorRetriever
 from services.sql_generator import SQLGenerator
 import config
@@ -145,6 +145,55 @@ async def generate_sql(request: QueryRequest):
     
     except Exception as e:
         print(f"ERROR in generate_sql endpoint: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate_from_prompt", tags=["SQL Generation"])
+async def generate_from_prompt(request: PromptRequest):
+    """
+    Generate SQL from a pre-built prompt (for GPU backend inference).
+    This endpoint receives the full prompt with schema and examples already included.
+    
+    - **prompt**: Complete prompt with schema, examples, and question
+    - **max_new_tokens**: Maximum tokens to generate
+    - **temperature**: Sampling temperature
+    - **do_sample**: Whether to use sampling
+    """
+    try:
+        print(f"Received prompt-based request (length: {len(request.prompt)} chars)")
+        
+        # Generate directly from prompt without retrieval
+        # Use the generator's local model if available
+        if hasattr(generator, 'use_api') and not generator.use_api:
+            # Use local model
+            sql_query = generator._generate_with_local_model(
+                prompt=request.prompt,
+                max_new_tokens=request.max_new_tokens,
+                num_beams=1
+            )
+        else:
+            # Fallback: shouldn't happen on GPU backend, but handle gracefully
+            print("WARNING: GPU backend called with use_api=True, this shouldn't happen")
+            sql_query = generator.generate_sql(
+                question=request.prompt,
+                context=None,
+                max_new_tokens=request.max_new_tokens
+            )
+        
+        # Clean the SQL
+        sql_query = generator._clean_generated_sql(sql_query, "")
+        
+        print(f"Generated SQL: {sql_query}")
+        
+        return {
+            "generated_sql": sql_query,
+            "prompt_length": len(request.prompt)
+        }
+    
+    except Exception as e:
+        print(f"ERROR in generate_from_prompt endpoint: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
