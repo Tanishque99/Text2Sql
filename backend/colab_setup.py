@@ -31,7 +31,7 @@ def main():
     
     # 1. Clone from GitHub
     print("\n1️⃣  Cloning from GitHub...")
-    repo_url = "https://github.com/kreloaded/text2sql.git"
+    repo_url = "https://github.com/Tanishque99/text2sql.git"
     run_command(f"git clone {repo_url} /content/text2sql", "Cloning repository")
     
     # Check folder structure
