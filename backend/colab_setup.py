@@ -132,7 +132,7 @@ def main():
     
     # 4. Setup environment
     print("\n4️⃣  Setting up environment...")
-    hf_token = "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"  # Replace with your token
+    hf_token = "YOUR_HF_TOKEN"  # Replace with your token
     os.environ['HUGGINGFACE_API_TOKEN'] = hf_token
     
     # Fix main.py to handle Colab paths correctly
@@ -213,7 +213,7 @@ def main():
     
     # 5. Setup ngrok
     print("\n5️⃣  Setting up ngrok...")
-    ngrok_token = "36X9mcbI93mJ6bFNwm0a5xHa0Q2_6haM2dPzk6NiTjmYPvKjM"  # Replace with your token
+    ngrok_token = "YOUR_NGROK_TOKEN"  # Replace with your token
   
     
     from pyngrok import ngrok
