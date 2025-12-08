@@ -36,7 +36,7 @@ class SQLGenerator:
         if self.use_api:
             if self.custom_api_url:
                 # Use custom API endpoint (e.g., from Colab)
-                self.api_url = f"{self.custom_api_url.rstrip('/')}/generate_from_prompt"
+                self.api_url = f"{self.custom_api_url.rstrip('/')}/generate"
                 self.headers = {"Content-Type": "application/json"}
                 self.use_custom_api = True
                 print(
@@ -228,14 +228,15 @@ class SQLGenerator:
         """Generate SQL using API (HuggingFace or custom)."""
         try:
             if self.use_custom_api:
-                # Custom API format (Colab backend expects full prompt with context)
-                # Send the FULL prompt that includes schema + examples
-                payload = {
-                    "prompt": prompt,
-                    "max_new_tokens": max_new_tokens,
-                    "temperature": 0.1,
-                    "do_sample": False
-                }
+                # Custom API format (Colab backend expects 'question' field)
+                # Extract question from prompt if not provided separately
+                if not question:
+                    # Try to extract question from prompt
+                    if "Question:" in prompt:
+                        question = prompt.split("Question:")[-1].split("\n")[0].strip()
+                    else:
+                        question = prompt
+                payload = {"question": question}
             else:
                 # HuggingFace API format
                 payload = {
