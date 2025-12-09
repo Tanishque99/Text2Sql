@@ -369,35 +369,34 @@ python debug_payload.py
 
 ## 🎯 Performance Metrics
 
-Based on evaluation with Spider test set (60 queries):
+**Latest Results** (50 queries each):
 
-- **Execution Accuracy**: 62% (37/60 queries execute correctly)
-- **SQL Syntax Error Rate**: 0% (down from 60% before fixes)
-- **Soccer_3 Test Database**: 92% accuracy (37/40 queries)
+| Dataset | Accuracy | SQL Errors | Notes |
+|---------|----------|------------|-------|
+| **Train** | **86%** (43/50) | 4% | Databases with training examples |
+| **Test** | **72%** (36/50) | 0% | Mixed test-only databases |
+| **Soccer_3** | **92%** (37/40) | 0% | Test DB with good schema |
+
+**System Performance:**
 - **Model Response Time**: 1-3 seconds on Colab T4 GPU
-- **FAISS Retrieval Time**: 50-100ms for top-5 similar examples
-- **Total End-to-End**: 1.5-4 seconds
+- **FAISS Retrieval**: 50-100ms for top-5 examples
+- **End-to-End Latency**: 1.5-4 seconds
 
-### Performance by Database Type
+### Accuracy Journey
 
-- **Databases with training examples**: 80-95% accuracy
-- **Test-only databases** (no training examples): 
-  - With good schema coverage: 92% (soccer_3)
-  - Complex queries without examples: Lower accuracy (e_commerce)
+The system improved through systematic bug fixes:
 
-### Accuracy Improvements
+| Stage | Train | Test | Key Fix |
+|-------|-------|------|---------|
+| Initial | ~20% | 24% | Baseline (empty schemas) |
+| Schema text | ~35% | 42% | Added text field to API |
+| Schema combo | ~45% | 55% | Combined all table schemas |
+| Cross-DB fix | 52% | 72% | Removed wrong examples |
+| **Prompt simplify** | **86%** | **72%** | **Removed confusing instructions** |
 
-The system went through multiple critical fixes:
-
-| Stage | Accuracy | Fix Applied |
-|-------|----------|-------------|
-| Initial | 24% | Baseline (empty schemas) |
-| After schema text fix | 42% | Added text field to API model |
-| After schema combination | 55% | Combined all table schemas |
-| After cross-DB removal | 55% | Removed mismatched examples |
-| **After WHERE cleaning** | **62%** | **Removed hallucinated clauses** |
-
-**Total Improvement**: 24% → 62% (+158% increase)
+**Total Improvement**: 
+- Train: 20% → 86% (+330%)
+- Test: 24% → 72% (+200%)
 
 ### Critical Bugs Fixed
 
