@@ -156,9 +156,25 @@ class SQLGenerator:
             Cleaned SQL query
         """
         sql = sql.strip()
+        import re
 
         # Fix common typos
         sql = sql.replace("openning_year", "opening_year")
+
+        # Remove hallucinated WHERE clauses with LIKE patterns
+        # Pattern: WHERE column LIKE '%word%' where word is from the question
+        # Common issue: model adds WHERE name LIKE '%is%' or WHERE T1.Name LIKE '%is%'
+        # Match with or without table alias: name or T1.name or T1.Name
+        sql = re.sub(r"\s+WHERE\s+(?:\w+\.)?[nN]ame\s+LIKE\s+'%(?:is|are|the|what|which|show|list)%'", "", sql, flags=re.IGNORECASE)
+        
+        # Also catch any column with these patterns
+        sql = re.sub(r"\s+WHERE\s+(?:\w+\.)?\w+\s+LIKE\s+'%(?:is|are)%'", "", sql, flags=re.IGNORECASE)
+        
+        # Remove WHERE with function calls on question words: WHERE is(name)
+        sql = re.sub(r"\s+WHERE\s+(?:is|are|the|what|which)\s*\([^)]*\)", "", sql, flags=re.IGNORECASE)
+        
+        # Remove WHERE question_asks or similar hallucinated columns
+        sql = re.sub(r"\s+WHERE\s+question_\w+\s*=\s*'[^']*'", "", sql, flags=re.IGNORECASE)
 
         # If question asks for simple count and SQL has unnecessary complexity
         question_lower = question.lower()
@@ -170,8 +186,6 @@ class SQLGenerator:
                 and "by" not in question_lower
             ):
                 # Remove unnecessary GROUP BY clauses for simple counts
-                import re
-
                 # Remove GROUP BY ... ORDER BY ... LIMIT patterns
                 sql = re.sub(r"\s+GROUP BY[^;]+", "", sql, flags=re.IGNORECASE)
                 sql = re.sub(r"\s+ORDER BY[^;]+", "", sql, flags=re.IGNORECASE)
@@ -180,8 +194,6 @@ class SQLGenerator:
         # Fix >= when question says "is" (exact match)
         if " is " in question_lower and ">=" in sql:
             # Replace >= with = for "is" questions
-            import re
-
             sql = re.sub(r">=\s*(\d+)", r"= \1", sql)
 
         return sql.strip()

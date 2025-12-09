@@ -136,17 +136,13 @@ class VectorRetriever:
                 }
             )
 
-        # Try to get db-specific examples, fall back to general if needed
-        if len(db_examples) >= top_k - 1:
-            # Enough db-specific examples
+        # Only use db-specific examples (don't fall back to other databases)
+        # Cross-database examples have different schemas and confuse the model
+        if db_examples:
             results.extend(db_examples[: top_k - 1])
+            print(f"DEBUG: Added {len(db_examples[: top_k - 1])} db-specific examples for {db_id}")
         else:
-            # Not enough db-specific examples, use general ones
-            results.extend(db_examples)  # Add all db-specific
-            needed = top_k - len(results)
-            if needed > 0:
-                print(f"DEBUG: Need {needed} more examples, using general examples")
-                results.extend(general_examples[:needed])
+            print(f"DEBUG: No training examples found for {db_id}, relying on schema only")
 
         print(
             f"DEBUG: Returning {len(results)} total results ({sum(1 for r in results if r.get('type')=='schema')} schemas, {sum(1 for r in results if r.get('type')=='example')} examples)"
