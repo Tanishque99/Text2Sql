@@ -101,14 +101,7 @@ class SQLGenerator:
 
         # Add examples ONLY if they're relevant (limit to 2-3 most relevant)
         if examples:
-            prompt_parts.append("# Similar Example Queries:")
-            prompt_parts.append(
-                "# NOTE: These are just examples. Generate SIMPLE, DIRECT SQL for the question below."
-            )
-            prompt_parts.append(
-                "# Do NOT add unnecessary GROUP BY, ORDER BY, or LIMIT unless the question asks for it."
-            )
-            prompt_parts.append("")
+            prompt_parts.append("# Example Queries:")
 
             # Sort by relevance (distance) and limit to top 2
             examples_sorted = sorted(examples, key=lambda x: x.get("distance", 999))[:2]
@@ -117,28 +110,13 @@ class SQLGenerator:
                 ex_question = example.get("question", "")
                 ex_sql = example.get("sql", "")
                 if ex_question and ex_sql:
-                    prompt_parts.append(f"Example Q: {ex_question}")
-                    prompt_parts.append(f"Example SQL: {ex_sql}")
+                    prompt_parts.append(f"Q: {ex_question}")
+                    prompt_parts.append(f"SQL: {ex_sql}")
                     prompt_parts.append("")
 
-        # Add explicit instructions for the target question
-        prompt_parts.append("# Instructions:")
-        prompt_parts.append("# 1. Write SIMPLE SQL that directly answers the question")
-        prompt_parts.append(
-            "# 2. Use exact equality (=) for 'is' questions, not >= or <="
-        )
-        prompt_parts.append(
-            "# 3. Only add GROUP BY if question asks 'for each' or 'by category'"
-        )
-        prompt_parts.append(
-            "# 4. Only add ORDER BY if question asks for 'sorted', 'ordered', 'top', 'highest', 'lowest'"
-        )
-        prompt_parts.append(
-            "# 5. Only add LIMIT if question asks for 'first N', 'top N', or specific count"
-        )
-        prompt_parts.append("")
-        prompt_parts.append("# Now generate SQL for THIS question:")
-        prompt_parts.append(f"Question: {question}")
+        # Add target question with minimal instructions
+        prompt_parts.append("# Generate SQL for:")
+        prompt_parts.append(f"Q: {question}")
         prompt_parts.append("SQL:")
 
         final_prompt = "\n".join(prompt_parts)
@@ -161,6 +139,21 @@ class SQLGenerator:
         # Fix common typos
         sql = sql.replace("openning_year", "opening_year")
 
+        # Remove hallucinated tables - only if they appear in specific patterns
+        # Pattern 1: WHERE ... IN (SELECT ... FROM hallucinated_table)
+        hallucinated_tables = ['question', 'SIMPLE', 'DIRECT', 'Simple_SQL', 'Direct_Question']
+        for table in hallucinated_tables:
+            # Remove subqueries with hallucinated tables
+            pattern = rf"\s+WHERE\s+\w+\s+(?:NOT\s+)?IN\s*\(\s*SELECT[^)]+FROM\s+{table}\b[^)]*\)"
+            sql = re.sub(pattern, "", sql, flags=re.IGNORECASE)
+            
+            # Remove JOIN with hallucinated tables
+            pattern = rf"\s+(?:INNER\s+|LEFT\s+|RIGHT\s+)?JOIN\s+{table}\b[^W]*?(?=WHERE|GROUP|ORDER|LIMIT|$)"
+            sql = re.sub(pattern, "", sql, flags=re.IGNORECASE)
+        
+        # Remove WHERE clauses with hallucinated columns
+        sql = re.sub(r"\s+WHERE\s+(?:question_asks|asks_for_category|Direct_Question)\s*=\s*'[^']*'", "", sql, flags=re.IGNORECASE)
+
         # Remove hallucinated WHERE clauses with LIKE patterns
         # Pattern: WHERE column LIKE '%word%' where word is from the question
         # Common issue: model adds WHERE name LIKE '%is%' or WHERE T1.Name LIKE '%is%'
@@ -172,9 +165,6 @@ class SQLGenerator:
         
         # Remove WHERE with function calls on question words: WHERE is(name)
         sql = re.sub(r"\s+WHERE\s+(?:is|are|the|what|which)\s*\([^)]*\)", "", sql, flags=re.IGNORECASE)
-        
-        # Remove WHERE question_asks or similar hallucinated columns
-        sql = re.sub(r"\s+WHERE\s+question_\w+\s*=\s*'[^']*'", "", sql, flags=re.IGNORECASE)
 
         # If question asks for simple count and SQL has unnecessary complexity
         question_lower = question.lower()
