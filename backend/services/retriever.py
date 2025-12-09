@@ -114,16 +114,22 @@ class VectorRetriever:
         # Build result: schema + examples
         results = []
 
-        # Always include target schema (directly looked up, not from semantic search)
+        # Always include ALL schemas for the target database (combined into one entry)
         if target_schemas:
-            schema_meta = target_schemas[0]
-            # Get schema text from correct field (text, full_schema, or schema)
-            schema_text = schema_meta.get("text", "") or schema_meta.get("full_schema", "") or schema_meta.get("schema", "")
+            # Combine all table schemas into one comprehensive schema text
+            schema_texts = []
+            for schema_meta in target_schemas:
+                # Get schema text from correct field (text, full_schema, or schema)
+                schema_text = schema_meta.get("text", "") or schema_meta.get("full_schema", "") or schema_meta.get("schema", "")
+                if schema_text:
+                    schema_texts.append(schema_text)
+            
+            combined_schema = "\n".join(schema_texts)
             results.append(
                 {
                     "type": "schema",
                     "db_id": db_id,
-                    "text": schema_text,
+                    "text": combined_schema,
                     "distance": 0.0,  # Direct lookup, no distance
                     "question": None,
                     "sql": None,

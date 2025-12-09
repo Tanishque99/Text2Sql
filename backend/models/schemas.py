@@ -45,6 +45,7 @@ class RetrievedContext(BaseModel):
     type: str = Field(..., description="Entry type: 'schema' or 'example'")
     db_id: str = Field(..., description="Database identifier")
     distance: float = Field(..., description="Distance score from query")
+    text: Optional[str] = Field(None, description="Schema text (if type is 'schema')")
     question: Optional[str] = Field(None, description="Example question (if type is 'example')")
     sql: Optional[str] = Field(None, description="Example SQL (if type is 'example')")
 
