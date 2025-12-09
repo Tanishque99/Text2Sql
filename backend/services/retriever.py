@@ -117,11 +117,13 @@ class VectorRetriever:
         # Always include target schema (directly looked up, not from semantic search)
         if target_schemas:
             schema_meta = target_schemas[0]
+            # Get schema text from correct field (text, full_schema, or schema)
+            schema_text = schema_meta.get("text", "") or schema_meta.get("full_schema", "") or schema_meta.get("schema", "")
             results.append(
                 {
                     "type": "schema",
                     "db_id": db_id,
-                    "text": schema_meta.get("schema", ""),
+                    "text": schema_text,
                     "distance": 0.0,  # Direct lookup, no distance
                     "question": None,
                     "sql": None,
